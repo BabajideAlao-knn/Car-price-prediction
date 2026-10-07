@@ -3,27 +3,40 @@ Streamlit app: Nigerian used-car price estimator.
 
 Run locally:  streamlit run app.py
 """
+from pathlib import Path
+
 import joblib
-import sklearn
+import pandas as pd
 import streamlit as st
 
-from train import MODEL_PATH, predict_price, train
+MODEL_PATH = Path(__file__).resolve().parent / "models" / "car_price_model.joblib"
 
 st.set_page_config(page_title="Nigerian Car Price Predictor", page_icon="🚗", layout="centered")
 
 
 @st.cache_resource(show_spinner=False)
 def load_bundle():
-    """Load the saved model; train it once (from data/ or Kaggle) if it isn't there yet."""
-    if MODEL_PATH.exists():
-        try:
-            bundle = joblib.load(MODEL_PATH)
-            if bundle.get("sklearn_version") == sklearn.__version__:
-                return bundle
-        except Exception:
-            pass  # saved with an incompatible library version: retrain below
-    with st.spinner("Preparing the model (first launch only)…"):
-        return train(verbose=False)
+    """Load the trained model and its metadata (saved from the notebook's final model)."""
+    return joblib.load(MODEL_PATH)
+
+
+def predict_price(bundle, make, year, condition, mileage, engine_size_cc,
+                  fuel="Petrol", transmission="Automatic") -> float:
+    """Predict a single car's price in Naira, using the same features as the notebook."""
+    model_make = make if make in bundle["model_makes"] else "Other"
+    age = bundle["ref_year"] - int(year)
+    row = pd.DataFrame([{
+        "car_age": age,
+        "mileage": float(mileage),
+        "engine_size": float(engine_size_cc),
+        "mileage_per_year": float(mileage) / max(age, 1),
+        "is_luxury": int(model_make in bundle["luxury"]),
+        "make": model_make,
+        "condition": condition,
+        "fuel": fuel,
+        "transmission": transmission,
+    }])
+    return float(bundle["model"].predict(row)[0])
 
 
 def naira(v: float) -> str:
@@ -32,12 +45,8 @@ def naira(v: float) -> str:
 
 try:
     bundle = load_bundle()
-except Exception as e:  # e.g. no CSV and no internet access to Kaggle
-    st.error(
-        "Couldn't load or train the model. Put `Nigerian_Car_Prices.csv` in the `data/` folder "
-        "or run `python train.py`, then reload.\n\n"
-        f"Details: {e}"
-    )
+except Exception as e:
+    st.error(f"Couldn't load the model from `models/car_price_model.joblib`.\n\nDetails: {e}")
     st.stop()
 
 metrics = bundle["metrics"]

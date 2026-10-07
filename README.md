@@ -2,6 +2,8 @@
 
 A machine learning project that estimates the market price of used cars in Nigeria (in Naira, ₦) from the make, year, condition, mileage, engine size, fuel type and transmission. It includes the full analysis notebook and a **Streamlit web app** for live predictions.
 
+### 🔗 Live app: **[babajide-car-price-prediction.streamlit.app](https://babajide-car-price-prediction.streamlit.app/)**
+
 **Dataset:** [Nigerian Car Prices – Kaggle (segunadedipe)](https://www.kaggle.com/datasets/segunadedipe/nigerian-car-prices) — 4,095 car listings.
 
 ---
@@ -11,7 +13,6 @@ A machine learning project that estimates the market price of used cars in Niger
 ```
 Car-price-prediction/
 ├── app.py                         # Streamlit interface
-├── train.py                       # Cleans the data, trains and saves the model
 ├── notebooks/
 │   └── Nigerian_Car_Price_Prediction.ipynb   # Full EDA + model comparison
 ├── data/Nigerian_Car_Prices.csv   # Raw dataset (4,095 listings)
@@ -64,27 +65,33 @@ pip install -r requirements.txt
 streamlit run app.py     # opens the app at http://localhost:8501
 ```
 
-A trained model is already included. To retrain it (for example after changing the cleaning steps), run `python train.py`. It reads `data/Nigerian_Car_Prices.csv` and overwrites `models/car_price_model.joblib`.
+The trained model is already included in `models/`. It was saved with scikit-learn 1.9.1, which is pinned in `requirements.txt` so the model loads correctly. If you retrain it in the notebook, save it with the same scikit-learn version or update the pin.
 
-If the installed scikit-learn version differs from the one the model was saved with, the app retrains automatically from the CSV on start-up (a few seconds).
+## Live deployment
 
-## Deploy on Streamlit Community Cloud
+The app is hosted on Streamlit Community Cloud: **https://babajide-car-price-prediction.streamlit.app/**
 
-1. Go to [share.streamlit.io](https://share.streamlit.io) and sign in with GitHub.
-2. Click **Create app → Deploy a public app from GitHub**.
-3. Choose repository `BabajideAlao-knn/Car-price-prediction`, branch `main`, main file `app.py`.
-4. Click **Deploy**. The app loads the saved model; nothing else to configure.
+It redeploys automatically whenever changes are pushed to the `main` branch.
 
 ## Using the model in Python
 
 ```python
 import joblib
-from train import predict_price
+import pandas as pd
 
 bundle = joblib.load("models/car_price_model.joblib")
-price = predict_price(bundle, make="Toyota", year=2010, condition="Foreign Used",
-                      mileage=120_000, engine_size_cc=2400)
-print(f"₦{price:,.0f}")
+car = pd.DataFrame([{
+    "car_age": bundle["ref_year"] - 2010,      # year of manufacture 2010
+    "mileage": 120_000,
+    "engine_size": 2400,
+    "mileage_per_year": 120_000 / (bundle["ref_year"] - 2010),
+    "is_luxury": 0,
+    "make": "Toyota",
+    "condition": "Foreign Used",
+    "fuel": "Petrol",
+    "transmission": "Automatic",
+}])
+print(f"₦{bundle['model'].predict(car)[0]:,.0f}")
 ```
 
 ## Limitations and next steps
