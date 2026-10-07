@@ -4,6 +4,7 @@ Streamlit app: Nigerian used-car price estimator.
 Run locally:  streamlit run app.py
 """
 import joblib
+import sklearn
 import streamlit as st
 
 from train import MODEL_PATH, predict_price, train
@@ -15,8 +16,13 @@ st.set_page_config(page_title="Nigerian Car Price Predictor", page_icon="🚗", 
 def load_bundle():
     """Load the saved model; train it once (from data/ or Kaggle) if it isn't there yet."""
     if MODEL_PATH.exists():
-        return joblib.load(MODEL_PATH)
-    with st.spinner("First launch: downloading the dataset and training the model (about a minute)…"):
+        try:
+            bundle = joblib.load(MODEL_PATH)
+            if bundle.get("sklearn_version") == sklearn.__version__:
+                return bundle
+        except Exception:
+            pass  # saved with an incompatible library version: retrain below
+    with st.spinner("Preparing the model (first launch only)…"):
         return train(verbose=False)
 
 

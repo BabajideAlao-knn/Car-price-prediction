@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 
 import joblib
+import sklearn
 import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
@@ -107,7 +108,7 @@ def add_features(df: pd.DataFrame, ref_year: int) -> pd.DataFrame:
     df = df.copy()
     df["car_age"] = ref_year - df["year"]
     df["mileage_per_year"] = df["mileage"] / df["car_age"].clip(lower=1)
-    df["is_luxury"] = df["raw_make"].isin(LUXURY).astype(int)
+    df["is_luxury"] = df["make"].isin(LUXURY).astype(int)  # after rare makes are grouped, as in the notebook
     return df
 
 
@@ -158,6 +159,7 @@ def train(csv_path=None, model_path=MODEL_PATH, verbose=True) -> dict:
         "engine_range": (int(df["engine_size"].min()), int(df["engine_size"].max())),
         "mileage_median": float(df["mileage"].median()),
         "metrics": metrics,
+        "sklearn_version": sklearn.__version__,
         "algorithm": "Support Vector Regression (C=3, epsilon=0.05) on log(price)",
     }
     Path(model_path).parent.mkdir(parents=True, exist_ok=True)
@@ -181,7 +183,7 @@ def predict_price(bundle, make, year, condition, mileage, engine_size_cc,
         "mileage": float(mileage),
         "engine_size": float(engine_size_cc),
         "mileage_per_year": float(mileage) / max(age, 1),
-        "is_luxury": int(make in bundle["luxury"]),
+        "is_luxury": int(model_make in bundle["luxury"]),
         "make": model_make,
         "condition": condition,
         "fuel": fuel,

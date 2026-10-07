@@ -14,8 +14,8 @@ Car-price-prediction/
 ├── train.py                       # Cleans the data, trains and saves the model
 ├── notebooks/
 │   └── Nigerian_Car_Price_Prediction.ipynb   # Full EDA + model comparison
-├── data/                          # (optional) put Nigerian_Car_Prices.csv here
-├── models/                        # car_price_model.joblib is saved here
+├── data/Nigerian_Car_Prices.csv   # Raw dataset (4,095 listings)
+├── models/car_price_model.joblib  # Trained model used by the app
 ├── requirements.txt
 └── .streamlit/config.toml         # App theme
 ```
@@ -61,22 +61,19 @@ git clone https://github.com/BabajideAlao-knn/Car-price-prediction.git
 cd Car-price-prediction
 pip install -r requirements.txt
 
-python train.py          # trains the model and saves models/car_price_model.joblib
 streamlit run app.py     # opens the app at http://localhost:8501
 ```
 
-`train.py` uses `data/Nigerian_Car_Prices.csv` if it exists; otherwise it downloads the dataset from Kaggle automatically with `kagglehub`. You can also point it at a file: `python train.py --data path/to/Nigerian_Car_Prices.csv`.
+A trained model is already included. To retrain it (for example after changing the cleaning steps), run `python train.py`. It reads `data/Nigerian_Car_Prices.csv` and overwrites `models/car_price_model.joblib`.
 
-If you skip `python train.py`, the app trains the model itself on first launch (takes about a minute).
+If the installed scikit-learn version differs from the one the model was saved with, the app retrains automatically from the CSV on start-up (a few seconds).
 
 ## Deploy on Streamlit Community Cloud
 
 1. Go to [share.streamlit.io](https://share.streamlit.io) and sign in with GitHub.
 2. Click **Create app → Deploy a public app from GitHub**.
 3. Choose repository `BabajideAlao-knn/Car-price-prediction`, branch `main`, main file `app.py`.
-4. Click **Deploy**. On first start the app downloads the dataset and trains the model, then caches it.
-
-**Tip:** for a faster, more reliable start-up, run `python train.py` locally and commit `models/car_price_model.joblib` (or commit the CSV to `data/`). The app then loads the saved model and doesn't need to reach Kaggle.
+4. Click **Deploy**. The app loads the saved model; nothing else to configure.
 
 ## Using the model in Python
 
